@@ -1,7 +1,7 @@
 import {Channel, decode, encode, Guild, GuildMemberWithUser, Message, PresenceUpdate,
     snowflakeToBigint, TableName, DiscordenoThread, Collection } from "./deps.ts";
 import extensionCodec from "./messagepack.ts";
-import {readStream} from "./utils.ts";
+import {readStream} from "./util.ts";
 
 
 export const cache = {
