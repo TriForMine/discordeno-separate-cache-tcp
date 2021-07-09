@@ -2,7 +2,7 @@
 A separate cache using a rest server and messagepack.
 
 # How To Use
-- Download/Copy the files in a fold
+- Download/Copy the files in a folder
 - Run the rest server using:  deno run -A --unstable .\mod.ts
 - In your bot mod.ts import setupCache and add it before startBot()
 ```ts
