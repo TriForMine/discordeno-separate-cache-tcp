@@ -59,7 +59,7 @@ for await (const conn of server) {
                                 data = decode(await readStream(requestEvent.request.body.getReader()), {extensionCodec});
                             }
 
-                            const [tableName, id, type]: [TableName, string, string] = requestEvent.request.url.split('/').slice(3);
+                            const [tableName, id, type]: [TableName, string, string] = requestEvent.request.url.split('/').slice(3) as [TableName, string, string];
 
                             let response;
 
