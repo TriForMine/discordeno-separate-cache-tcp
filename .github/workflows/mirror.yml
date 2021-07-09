@@ -3,7 +3,7 @@ name: Mirroring
 on: [push, delete]
 
 jobs:
-  to_gitlab:
+  to_codeberg:
     runs-on: ubuntu-20.04
     steps:                                              # <-- must use actions/checkout@v1 before mirroring!
     - uses: actions/checkout@v1
