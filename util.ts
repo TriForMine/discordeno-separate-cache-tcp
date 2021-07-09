@@ -1,6 +1,5 @@
-import {cacheHandlers, Collection, decode, encode, TableName} from "../../deps.ts";
-import extensionCodec from "../utils/messagepack.ts";
-import {readStream} from "../utils/util.ts";
+import {cacheHandlers, Collection, decode, encode, TableName} from "./deps.ts";
+import extensionCodec from "./messagepack.ts";
 
 export function setupCache() {
     cacheHandlers.set = async (table: TableName, key: bigint, value: any) => {
