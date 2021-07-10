@@ -14,16 +14,24 @@ import {
 import extensionCodec from "../utils/messagepack.ts";
 import { readStream } from "../utils/readStream.ts";
 
-const TableNames = ["channels", "guilds", "members", "messages", "presences", "unavailableGuilds", "threads"] as const;
+const TableNames = [
+  "channels",
+  "guilds",
+  "members",
+  "messages",
+  "presences",
+  "unavailableGuilds",
+  "threads",
+] as const;
 type CacheTableNames = typeof TableNames[number];
 
-export const cache: {[table: string]: Collection<any, any>} = {
+export const cache: { [table: string]: Collection<any, any> } = {
   channels: new Collection<bigint, Channel>(),
   guilds: new Collection<bigint, Guild & { shardId: number }>(),
   members: new Collection<
-      bigint,
-      (GuildMemberWithUser & { guildId: string })[]
-      >(),
+    bigint,
+    (GuildMemberWithUser & { guildId: string })[]
+  >(),
   messages: new Collection<bigint, Message>(),
   presences: new Collection<bigint, PresenceUpdate>(),
   unavailableGuilds: new Collection<bigint, number>(),
@@ -50,50 +58,54 @@ for await (const conn of server) {
             try {
               if (requestEvent.request.url.endsWith("/memory")) {
                 return requestEvent.respondWith(
-                    new Response(
-                        JSON.stringify({
-                          success: true,
-                          response: Deno.memoryUsage(),
-                        }),
-                        {
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          status: 200,
-                        }
-                    )
+                  new Response(
+                    JSON.stringify({
+                      success: true,
+                      response: Deno.memoryUsage(),
+                    }),
+                    {
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      status: 200,
+                    }
+                  )
                 );
               }
 
               let data;
 
               if (
-                  requestEvent.request.headers.get("Content-Type") ===
-                  "application/msgpack"
+                requestEvent.request.headers.get("Content-Type") ===
+                "application/msgpack"
               ) {
                 if (!requestEvent.request.body) {
                   return requestEvent.respondWith(
-                      new Response(encode({ success: false }), {
-                        headers: {
-                          "Content-Type": "application/msgpack",
-                        },
-                        status: 400,
-                      })
+                    new Response(encode({ success: false }), {
+                      headers: {
+                        "Content-Type": "application/msgpack",
+                      },
+                      status: 400,
+                    })
                   );
                 }
                 data = decode(
-                    await readStream(requestEvent.request.body.getReader()),
-                    { extensionCodec }
+                  await readStream(requestEvent.request.body.getReader()),
+                  { extensionCodec }
                 );
               }
 
-              const [tableName, id, type, optional]: [string, string, string, string] =
-                  requestEvent.request.url.split("/").slice(3) as [
-                    string,
-                    string,
-                    string,
-                    string
-                  ];
+              const [tableName, id, type, optional]: [
+                string,
+                string,
+                string,
+                string
+              ] = requestEvent.request.url.split("/").slice(3) as [
+                string,
+                string,
+                string,
+                string
+              ];
 
               let response;
 
@@ -101,17 +113,20 @@ for await (const conn of server) {
                 switch (id) {
                   case "DELETE_MESSAGES_FROM_CHANNEL":
                     cache.messages.forEach((message) => {
-                      if (message.channelId === BigInt(type)) cache.messages.delete(message.id);
+                      if (message.channelId === BigInt(type))
+                        cache.messages.delete(message.id);
                     });
                     break;
                   case "DELETE_MESSAGES_FROM_GUILD":
                     cache.messages.forEach((message) => {
-                      if (message.guildId === BigInt(type)) cache.messages.delete(message.id);
+                      if (message.guildId === BigInt(type))
+                        cache.messages.delete(message.id);
                     });
                     break;
                   case "DELETE_CHANNELS_FROM_GUILD":
                     cache.channels.forEach((channel) => {
-                      if (channel.guildId === BigInt(type)) cache.channels.delete(channel.id);
+                      if (channel.guildId === BigInt(type))
+                        cache.channels.delete(channel.id);
                     });
                     break;
                   case "DELETE_GUILD_FROM_MEMBER":
@@ -132,20 +147,31 @@ for await (const conn of server) {
                       // Not in the relevant guild so just skip
                       if (!member.guilds.has(BigInt(type))) return;
 
-                      const guildMember = member.guilds.get(BigInt(type) as bigint)!;
+                      const guildMember = member.guilds.get(
+                        BigInt(type) as bigint
+                      )!;
 
-                      guildMember.roles = guildMember.roles.filter((id: bigint) => id !== (BigInt(optional) as bigint));
+                      guildMember.roles = guildMember.roles.filter(
+                        (id: bigint) => id !== (BigInt(optional) as bigint)
+                      );
                       cache.members.set(member.id, member);
                     });
                     break;
                 }
               } else if (tableName === "filter") {
                 if (id === "GET_MEMBERS_IN_GUILD") {
-                  response = cache.members.filter((member) => member.guilds.has(type));
+                  response = cache.members.filter((member) =>
+                    member.guilds.has(type)
+                  );
                 }
               } else if (id) {
                 if (TableNames.includes(tableName as TableName)) {
-                  if (id === "clear" || id === "size" || id == "getAll" || id == "filter") {
+                  if (
+                    id === "clear" ||
+                    id === "size" ||
+                    id == "getAll" ||
+                    id == "filter"
+                  ) {
                     switch (id) {
                       case "clear":
                         cache[tableName].clear();
@@ -166,7 +192,9 @@ for await (const conn of server) {
                         cache[tableName].set(snowflakeToBigint(id), data);
                         break;
                       case "delete":
-                        response = cache[tableName].delete(snowflakeToBigint(id));
+                        response = cache[tableName].delete(
+                          snowflakeToBigint(id)
+                        );
                         break;
                       case "has":
                         response = cache[tableName].has(snowflakeToBigint(id));
@@ -177,17 +205,17 @@ for await (const conn of server) {
               }
 
               const responseData = encode(
-                  { success: true, response },
-                  { extensionCodec }
+                { success: true, response },
+                { extensionCodec }
               );
 
               requestEvent.respondWith(
-                  new Response(responseData, {
-                    headers: {
-                      "Content-Type": "application/msgpack",
-                    },
-                    status: 200,
-                  })
+                new Response(responseData, {
+                  headers: {
+                    "Content-Type": "application/msgpack",
+                  },
+                  status: 200,
+                })
               );
             } catch (e) {
               console.error(e);
