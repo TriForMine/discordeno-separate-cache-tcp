@@ -1,7 +1,5 @@
-import {
-    cacheHandlers,
-    TableName,
-} from "./deps.ts";
+import { cacheHandlers, decode, encode, TableName } from "./deps.ts";
+import extensionCodec from "../utils/messagepack.ts";
 import { readStream } from "../utils/readStream.ts";
 import {decodeData, encodeData} from "../utils/utils.ts";
 
@@ -47,21 +45,40 @@ export function setupCache() {
         return fetchData(`http://localhost:9999/${table}/size`);
     };
 
-    cacheHandlers.forEach = async (
-        type:
-            | "DELETE_MESSAGES_FROM_CHANNEL"
-            | "DELETE_MESSAGES_FROM_GUILD"
-            | "DELETE_CHANNELS_FROM_GUILD"
-            | "DELETE_GUILD_FROM_MEMBER"
-            | "DELETE_ROLE_FROM_MEMBER",
-        options?: Record<string, unknown>
-    ) => {
-        return fetchData(`http://localhost:9999/forEach/${type}`, encodeData(options));
-    };
+  cacheHandlers.forEach = async (
+    type:
+      | "DELETE_MESSAGES_FROM_CHANNEL"
+      | "DELETE_MESSAGES_FROM_GUILD"
+      | "DELETE_CHANNELS_FROM_GUILD"
+      | "DELETE_GUILD_FROM_MEMBER"
+      | "DELETE_ROLE_FROM_MEMBER",
+    options?: Record<string, unknown>
+  ) => {
+    return decode(
+      await readStream(
+        (
+          await fetch(
+            `http://localhost:9999/forEach/${type}/${
+              options ? Object.values(options).join("/") : ""
+            }`
+          )
+        ).body!.getReader()
+      ),
+      { extensionCodec }
+    ).response;
+  };
 
-    cacheHandlers.filter = async (
-        type: "GET_MEMBERS_IN_GUILD"
-    ) => {
-        return fetchData(`http://localhost:9999/filter/${type}`);
-    };
+  cacheHandlers.filter = async (
+    type: "GET_MEMBERS_IN_GUILD",
+    options: { guildId: bigint }
+  ) => {
+    return decode(
+      await readStream(
+        (
+          await fetch(`http://localhost:9999/filter/${type}/${options.guildId}`)
+        ).body!.getReader()
+      ),
+      { extensionCodec }
+    ).response;
+  };
 }
