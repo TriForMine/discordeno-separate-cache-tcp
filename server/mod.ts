@@ -14,7 +14,7 @@ import {
 import extensionCodec from "../utils/messagepack.ts";
 import { readStream } from "../utils/readStream.ts";
 
-const TableNames = ["channels", "guilds", "members", "messages", "presences", "unavailableGuilds", "threads"] as const;
+const TableNames = ["channels", "guilds", "members", "messages", "presences", "unavailableGuilds", "threads", "prefixes"] as const;
 type CacheTableNames = typeof TableNames[number];
 
 export const cache: {[table: string]: Collection<any, any>} = {
@@ -28,6 +28,7 @@ export const cache: {[table: string]: Collection<any, any>} = {
   presences: new Collection<bigint, PresenceUpdate>(),
   unavailableGuilds: new Collection<bigint, number>(),
   threads: new Collection<bigint, DiscordenoThread>(),
+  prefixes: new Collection<bigint, string>() // Custom cache for per guild prefixes. You can remove this if you don't want it
 } as const;
 
 // Start listening on localhost.

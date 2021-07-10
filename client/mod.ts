@@ -1,6 +1,5 @@
 import {
   cacheHandlers,
-  Collection,
   decode,
   encode,
   TableName,
