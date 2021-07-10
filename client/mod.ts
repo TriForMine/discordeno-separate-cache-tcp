@@ -1,49 +1,57 @@
 import { cacheHandlers, decode, encode, TableName } from "./deps.ts";
 import extensionCodec from "../utils/messagepack.ts";
 import { readStream } from "../utils/readStream.ts";
-import {decodeData, encodeData} from "../utils/utils.ts";
+import { decodeData, encodeData } from "../utils/utils.ts";
 
 async function fetchData(url: string, body?: Uint8Array) {
-    return decodeData(
-        await readStream(
-            (
-                await fetch(url, body ? {
-                    method: "POST",
-                    body: body,
-                    headers: {
-                        "Content-Type": "application/msgpack",
-                        "Content-Length": body.byteLength.toString(),
-                    },
-                } : { method: "GET" })
-            ).body!.getReader()
+  return decodeData(
+    await readStream(
+      (
+        await fetch(
+          url,
+          body
+            ? {
+                method: "POST",
+                body: body,
+                headers: {
+                  "Content-Type": "application/msgpack",
+                  "Content-Length": body.byteLength.toString(),
+                },
+              }
+            : { method: "GET" }
         )
-    );
+      ).body!.getReader()
+    )
+  );
 }
 
 export function setupCache() {
-    cacheHandlers.set = async (table: TableName, key: bigint, value: any) => {
-        return fetchData(`http://localhost:9999/${table}/${key}/set`, encodeData(value));
-    };
+  cacheHandlers.set = async (table: TableName, key: bigint, value: any) => {
+    return fetchData(
+      `http://localhost:9999/${table}/${key}/set`,
+      encodeData(value)
+    );
+  };
 
-    cacheHandlers.get = async (table: TableName, key: bigint) => {
-        return fetchData(`http://localhost:9999/${table}/${key}/get`);
-    };
+  cacheHandlers.get = async (table: TableName, key: bigint) => {
+    return fetchData(`http://localhost:9999/${table}/${key}/get`);
+  };
 
-    cacheHandlers.clear = async (table: TableName) => {
-        return fetchData(`http://localhost:9999/${table}/clear`);
-    };
+  cacheHandlers.clear = async (table: TableName) => {
+    return fetchData(`http://localhost:9999/${table}/clear`);
+  };
 
-    cacheHandlers.delete = async (table: TableName, key: bigint) => {
-        return fetchData(`http://localhost:9999/${table}/${key}/delete`);
-    };
+  cacheHandlers.delete = async (table: TableName, key: bigint) => {
+    return fetchData(`http://localhost:9999/${table}/${key}/delete`);
+  };
 
-    cacheHandlers.has = async (table: TableName, key: bigint) => {
-        return fetchData(`http://localhost:9999/${table}/${key}/has`);
-    };
+  cacheHandlers.has = async (table: TableName, key: bigint) => {
+    return fetchData(`http://localhost:9999/${table}/${key}/has`);
+  };
 
-    cacheHandlers.size = async (table: TableName) => {
-        return fetchData(`http://localhost:9999/${table}/size`);
-    };
+  cacheHandlers.size = async (table: TableName) => {
+    return fetchData(`http://localhost:9999/${table}/size`);
+  };
 
   cacheHandlers.forEach = async (
     type:
