@@ -78,31 +78,32 @@ export function setupCache() {
     );
   };
 
-  cacheHandlers.forEach = async (
-    table: TableName,
-    callback: (value: any, key: bigint, map: Map<bigint, any>) => unknown
-  ) => {
-    const values: Collection<bigint, any> = decode(
-      await readStream(
-        (await fetch(`http://localhost:9999/${table}/getAll`)).body!.getReader()
-      ),
-      { extensionCodec }
-    ).response;
-    console.log(values);
-    return values.forEach(callback);
-  };
+    cacheHandlers.forEach = async (
+        type:
+            | "DELETE_MESSAGES_FROM_CHANNEL"
+            | "DELETE_MESSAGES_FROM_GUILD"
+            | "DELETE_CHANNELS_FROM_GUILD"
+            | "DELETE_GUILD_FROM_MEMBER"
+            | "DELETE_ROLE_FROM_MEMBER",
+        options?: Record<string, unknown>
+    ) => {
+        return decode(
+            await readStream(
+                (await fetch(`http://localhost:9999/forEach/${type}/${options ? Object.values(options).join('/') : ''}`)).body!.getReader()
+            ),
+            { extensionCodec }
+        ).response;
+    };
 
   cacheHandlers.filter = async (
-    table: TableName,
-    callback: (value: any, key: bigint) => boolean
+    type: "GET_MEMBERS_IN_GUILD",
+    options: { guildId: bigint }
   ) => {
-    const values: Collection<bigint, any> = decode(
-      await readStream(
-        (await fetch(`http://localhost:9999/${table}/getAll`)).body!.getReader()
-      ),
-      { extensionCodec }
+    return decode(
+        await readStream(
+            (await fetch(`http://localhost:9999/filter/${type}/${options.guildId}`)).body!.getReader()
+        ),
+        { extensionCodec }
     ).response;
-    console.log(values);
-    return values.filter(callback);
   };
 }
