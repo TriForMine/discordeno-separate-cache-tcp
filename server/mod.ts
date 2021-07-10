@@ -22,7 +22,7 @@ const TableNames = [
   "presences",
   "unavailableGuilds",
   "threads",
-  "prefixes"
+  "prefixes",
 ] as const;
 type CacheTableNames = typeof TableNames[number];
 
@@ -37,7 +37,7 @@ export const cache: { [table: string]: Collection<any, any> } = {
   presences: new Collection<bigint, PresenceUpdate>(),
   unavailableGuilds: new Collection<bigint, number>(),
   threads: new Collection<bigint, DiscordenoThread>(),
-  prefixes: new Collection<bigint, string>() // Custom cache for per guild prefixes. You can remove this if you don't want it
+  prefixes: new Collection<bigint, string>(), // Custom cache for per guild prefixes. You can remove this if you don't want it
 } as const;
 
 // Start listening on localhost.
