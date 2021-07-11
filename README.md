@@ -1,5 +1,5 @@
-# Discordeno Separate Cache Rest
-A separate cache using a rest server and messagepack.
+# Discordeno Separate Cache Tcp
+A separate cache using a tcp server and messagepack.
 
 # How To Use
 - Download/Copy the files in a folder
