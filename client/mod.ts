@@ -1,92 +1,64 @@
-import { cacheHandlers, decode, encode, TableName } from "./deps.ts";
-import extensionCodec from "../utils/messagepack.ts";
-import { readStream } from "../utils/readStream.ts";
-import { decodeData, encodeData } from "../utils/utils.ts";
-
-async function fetchData(url: string, body?: Uint8Array) {
-  return decodeData(
-    await readStream(
-      (
-        await fetch(
-          url,
-          body
-            ? {
-                method: "POST",
-                body: body,
-                headers: {
-                  "Content-Type": "application/msgpack",
-                  "Content-Length": body.byteLength.toString(),
-                },
-              }
-            : { method: "GET" }
-        )
-      ).body!.getReader()
-    )
-  );
-}
+import {
+    cacheHandlers,
+    Collection,
+    TableName,
+} from "./deps.ts";
+import {
+    sendClearRequest,
+    sendDeleteRequest, sendGetAllRequest,
+    sendGetRequest,
+    sendHasRequest,
+    sendSetRequest, sendSizeRequest,
+    startCacheClient
+} from "./tcp.ts";
 
 export function setupCache() {
-  cacheHandlers.set = async (table: TableName, key: bigint, value: any) => {
-    return fetchData(
-      `http://localhost:9999/${table}/${key}/set`,
-      encodeData(value)
-    );
-  };
+    cacheHandlers.set = async (table: TableName, key: bigint, value: any) => {
+        return await sendSetRequest(table, key, value);
+    };
 
-  cacheHandlers.get = async (table: TableName, key: bigint) => {
-    return fetchData(`http://localhost:9999/${table}/${key}/get`);
-  };
+    cacheHandlers.get = async (table: TableName, key: bigint) => {
+        return await sendGetRequest(table, key);
+    };
 
-  cacheHandlers.clear = async (table: TableName) => {
-    return fetchData(`http://localhost:9999/${table}/clear`);
-  };
+    cacheHandlers.clear = async (table: TableName) => {
+        return await sendClearRequest(table);
+    };
 
-  cacheHandlers.delete = async (table: TableName, key: bigint) => {
-    return fetchData(`http://localhost:9999/${table}/${key}/delete`);
-  };
+    cacheHandlers.delete = async (table: TableName, key: bigint) => {
+        return await sendDeleteRequest(table, key);
+    };
 
-  cacheHandlers.has = async (table: TableName, key: bigint) => {
-    return fetchData(`http://localhost:9999/${table}/${key}/has`);
-  };
+    cacheHandlers.has = async (table: TableName, key: bigint) => {
+        return await sendHasRequest(table, key);
+    };
 
-  cacheHandlers.size = async (table: TableName) => {
-    return fetchData(`http://localhost:9999/${table}/size`);
-  };
+    cacheHandlers.size = async (table: TableName) => {
+        return await sendSizeRequest(table);
+    };
 
-  cacheHandlers.forEach = async (
-    type:
-      | "DELETE_MESSAGES_FROM_CHANNEL"
-      | "DELETE_MESSAGES_FROM_GUILD"
-      | "DELETE_CHANNELS_FROM_GUILD"
-      | "DELETE_GUILD_FROM_MEMBER"
-      | "DELETE_ROLE_FROM_MEMBER",
-    options?: Record<string, unknown>
-  ) => {
-    return decode(
-      await readStream(
-        (
-          await fetch(
-            `http://localhost:9999/forEach/${type}/${
-              options ? Object.values(options).join("/") : ""
-            }`
-          )
-        ).body!.getReader()
-      ),
-      { extensionCodec }
-    ).response;
-  };
+    cacheHandlers.getAll = async (table: TableName) => {
+        return await sendGetAllRequest(table);
+    };
 
-  cacheHandlers.filter = async (
-    type: "GET_MEMBERS_IN_GUILD",
-    options: { guildId: bigint }
-  ) => {
-    return decode(
-      await readStream(
-        (
-          await fetch(`http://localhost:9999/filter/${type}/${options.guildId}`)
-        ).body!.getReader()
-      ),
-      { extensionCodec }
-    ).response;
-  };
+    cacheHandlers.forEach = async (
+        type:
+            | "DELETE_MESSAGES_FROM_CHANNEL"
+            | "DELETE_MESSAGES_FROM_GUILD"
+            | "DELETE_CHANNELS_FROM_GUILD"
+            | "DELETE_GUILD_FROM_MEMBER"
+            | "DELETE_ROLE_FROM_MEMBER",
+        options?: Record<string, unknown>
+    ) => {
+        return;
+    };
+
+    cacheHandlers.filter = async (
+        type: "GET_MEMBERS_IN_GUILD"
+    ) => {
+        return new Collection();
+    };
+
+    startCacheClient().then(undefined);
 }
+

@@ -1,65 +1,71 @@
-import { readStream } from "../utils/readStream.ts";
-import {decodeData, encodeData} from "../utils/utils.ts";
-import set from "./functions/set.ts";
+import {decodeDataMultiple, encodeData} from "../utils/utils.ts";
 import get from "./functions/get.ts";
-import deleteOne from "./functions/delete.ts";
+import set from "./functions/set.ts";
 import has from "./functions/has.ts";
 import size from "./functions/size.ts";
-import {NHttp, HttpResponse} from "./deps.ts";
-import forEach from "./functions/forEach.ts";
-import filter from "./functions/filter.ts";
+import clear from "./functions/clear.ts";
+import deleteOne from "./functions/delete.ts";
+import getAll from "./functions/getAll.ts";
+import { iter } from "./deps.ts";
 
-const app = new NHttp();
-
-function sendData(response: HttpResponse, data: any) {
-  const encodedData = encodeData(data);
-  return response.header({
-    "Content-Type": "application/msgpack",
-    "Content-Length": encodedData.byteLength,
-  }).send(encodedData);
+async function sendResponse(conn: Deno.Conn, nonce: Uint8Array, data: Uint8Array) {
+    await conn.write(encodeData({nonce, data}));
 }
 
-app.get("/memory", ({ response }) => {
-  return response.send(
-      JSON.stringify({
-        success: true,
-        response: Deno.memoryUsage(),
-      }),
-  );
-});
+async function onMessage(conn: Deno.Conn, {data, nonce}: { nonce: Uint8Array, data: any }) {
+    if(!data || !data.type)
+        return;
+    let result;
+    switch (data.type) {
+        case "GET":
+            result = get(data.table, data.key);
+            break;
+        case "SET":
+            set(data.table, data.key, data.value);
+            result = true;
+            break;
+        case "HAS":
+            result = has(data.table, data.key);
+            break;
+        case "SIZE":
+            result = size(data.table);
+            break;
+        case "CLEAR":
+            result = clear(data.table);
+            break;
+        case "DELETE":
+            result = deleteOne(data.table, data.key);
+            break;
+        case "GET_ALL":
+            result = getAll(data.table);
+            break;
+    }
+    await sendResponse(conn, nonce, result);
+}
 
-app.post("/:table/:key/set", async ({request, response, params}) => {
-  if(!request.body)
-    return response.code(404).send('404 Not Found');
-  return sendData(response, set(params.table, params.key, decodeData(await readStream(request.body.getReader()))));
-});
+async function listenMessages(conn: Deno.Conn) {
+    try {
+        for await (const data of iter(conn, {bufSize: 64 * 1024})){
+            try {
+                for (const decodedData of decodeDataMultiple(data)) {
+                    if(decodedData)
+                        onMessage(conn, decodedData);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
 
-app.get("/:table/:key/get", ({response, params}) => {
-  return sendData(response, get(params.table, params.key));
-});
+async function startServer() {
+    const listener = Deno.listen({ port: 8080 });
+    console.log("listening on 0.0.0.0:8080");
+    for await (const conn of listener) {
+        listenMessages(conn);
+    }
+}
 
-app.get("/:table/:key/delete", ({response, params}) => {
-  return sendData(response, deleteOne(params.table, params.key));
-});
-
-app.get("/:table/:key/has", ({response, params}) => {
-  return sendData(response, has(params.table, params.key));
-});
-
-app.get("/:table/size", ({response, params}) => {
-  return sendData(response, size(params.table));
-});
-
-app.post("/forEach/:type", async ({request, response, params}) => {
-  if(!request.body)
-    return response.code(404).send('404 Not Found');
-  return sendData(response, forEach(params.type, decodeData(await readStream(request.body.getReader()))));
-});
-
-app.get("/filter/:type", ({response, params}) => {
-  return sendData(response, filter(params.type));
-});
-
-app.listen(9999, () => {
-  console.log(`HTTP webserver running.  Access it at:  http://localhost:9999/`);
-})
+await startServer();

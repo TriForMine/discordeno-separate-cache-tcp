@@ -4,7 +4,7 @@ import {
     decode,
     DecodeError,
     Collection,
-} from "../server/deps.ts";
+} from "./deps.ts";
 
 const extensionCodec = new ExtensionCodec();
 extensionCodec.register({
